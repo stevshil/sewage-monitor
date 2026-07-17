@@ -41,6 +41,7 @@ jobs:
           publish_dir: public
           publish_branch: pages
           keep_files: false
+          force_orphan: true
 
 
 
