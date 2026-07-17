@@ -29,18 +29,18 @@ jobs:
         run: |
           uv run python -u get_data.py
 
-      - name: Prepare gh-pages content
+      - name: Prepare public content
         run: |
-          mkdir -p pages
-          cp reports/sewage.json pages/sewage.json
-          ls -l pages
+          mkdir -p public
+          cp reports/sewage.json public/sewage.json
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: pages
+          publish_dir: public
           publish_branch: pages
           keep_files: false
+
 
 
