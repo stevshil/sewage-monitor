@@ -10,7 +10,7 @@ from datetime import date, timedelta, datetime
 from urllib.parse import urlparse, parse_qs
 
 download_dir_glob = os.path.abspath("downloads")
-report_dir_glob = os.path.abspath("reports")
+report_dir_glob = os.path.abspath("pages") # So gh-pages can copy it
 
 # ---------------------------------------------------------
 # Severity ranking
