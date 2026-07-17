@@ -23,7 +23,7 @@ jobs:
 
       - name: Install Playwright browsers
         run: |
-          uv run playwright install chromium --with-deps
+          uv run playwright install chromium
 
       - name: Run sewage script
         run: |
@@ -31,12 +31,14 @@ jobs:
 
       - name: Prepare gh-pages content
         run: |
-          mkdir -p public
-          cp reports/sewage.json public/sewage.json
+          mkdir -p pages
+          cp reports/sewage.json pages/sewage.json
 
-      - name: Publish to GitHub Pages
+      - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: public
+          publish_dir: pages
           publish_branch: gh-pages
+          keep_files: true
+
