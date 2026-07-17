@@ -121,20 +121,20 @@ def consolidate_records(records):
         dt = datetime.strptime(start_str.split(" ")[0], "%d/%m/%Y")
         date_key = dt.strftime("%Y-%m-%d")
 
-        bw = r["Bathing Water"]
+        bw = r["BathingWater"]
         outfall = r["Outfall"]
 
         key = (bw, date_key)
 
         if key not in grouped:
             grouped[key] = {
-                "Bathing Water": bw,
+                "BathingWater": bw,
                 "Date": date_key,
-                "Earliest Start": r["Start"],
-                "Latest End": r["End"],
+                "Start": r["Start"],
+                "End": r["End"],
                 "Outfalls": {outfall},
                 "Statuses": {r["Status"]},
-                "Impact Statuses": {r["Impact Status"]}
+                "ImpactStatuses": {r["Impact Status"]}
             }
         else:
             entry = grouped[key]
@@ -147,7 +147,7 @@ def consolidate_records(records):
 
             entry["Outfalls"].add(outfall)
             entry["Statuses"].add(r["Status"])
-            entry["Impact Statuses"].add(r["Impact Status"])
+            entry["ImpactStatuses"].add(r["Impact Status"])
 
     # ---------------------------------------------------------
     # ADD TOTAL DURATION + MOST SEVERE STATUS + IMPACT STATUS
@@ -170,14 +170,14 @@ def consolidate_records(records):
         severe_impact = max(entry["Impact Statuses"], key=lambda s: IMPACT_RANK.get(s, 0))
 
         final.append({
-            "Bathing Water": entry["Bathing Water"],
+            "BathingWater": entry["Bathing Water"],
             "Date": entry["Date"],
             "Start": entry["Earliest Start"],
             "End": entry["Latest End"],
-            "Total Duration (Formatted)": formatted_duration,
-            "Affected Outfalls": ", ".join(sorted(entry["Outfalls"])),
+            "TotalDuration": formatted_duration,
+            "AffectedOutfalls": ", ".join(sorted(entry["Outfalls"])),
             "Status": severe_status,
-            "Impact Status": severe_impact
+            "ImpactStatus": severe_impact
         })
 
     return final
