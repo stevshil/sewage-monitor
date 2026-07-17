@@ -3,7 +3,7 @@ name: Hourly Sewage Monitor
 on:
   schedule:
     - cron: "0 * * * *"   # Every hour
-  workflow_dispatch:       # Allow manual runs
+  workflow_dispatch:
 
 jobs:
   run-sewage-monitor:
@@ -13,26 +13,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
+      - name: Install uv
         run: |
-          pip install playwright
-          playwright install chromium --with-deps
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Sync dependencies
+        run: |
+          uv sync
+
+      - name: Install Playwright browsers
+        run: |
+          uv run playwright install --with-deps
 
       - name: Run sewage script
         run: |
-          python your_script_name.py
+          uv run python -u get_data.py
 
-      - name: Prepare gh-pages branch
+      - name: Prepare gh-pages content
         run: |
           mkdir -p public
           cp reports/sewage.json public/sewage.json
 
-      - name: Deploy to GitHub Pages
+      - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
