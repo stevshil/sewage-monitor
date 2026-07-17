@@ -33,6 +33,7 @@ jobs:
         run: |
           mkdir -p pages
           cp reports/sewage.json pages/sewage.json
+          ls -l pages
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
