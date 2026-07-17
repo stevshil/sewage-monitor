@@ -98,8 +98,8 @@ def parse_csv_to_records(csv_path):
                 "Start": clean_row.get("Start (Formatted)"),
                 "End": clean_row.get("End (Formatted)"),
                 "Duration": clean_row.get("Duration"),
-                "Bathing Water": clean_row.get("Bathing Water"),
-                "Impact Status": clean_row.get("Impact Status")
+                "BathingWater": clean_row.get("Bathing Water"),
+                "ImpactStatus": clean_row.get("Impact Status")
             }
             records.append(record)
 
