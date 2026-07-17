@@ -28,7 +28,12 @@ jobs:
       - name: Run sewage script
         run: |
           uv run python -u get_data.py
-      
+
+      - name: Prepare gh-pages content
+        run: |
+          mkdir -p pages
+          cp reports/sewage.json pages/sewage.json
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
@@ -36,10 +41,5 @@ jobs:
           publish_dir: pages
           publish_branch: pages
           keep_files: false
-
-      # - name: Prepare gh-pages content
-      #   run: |
-      #     mkdir -p pages
-      #     cp reports/sewage.json pages/sewage.json
 
 
