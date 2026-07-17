@@ -1,0 +1,40 @@
+name: Hourly Sewage Monitor
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # Every hour
+  workflow_dispatch:       # Allow manual runs
+
+jobs:
+  run-sewage-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          playwright install --with-deps
+
+      - name: Run sewage script
+        run: |
+          python your_script_name.py
+
+      - name: Prepare gh-pages branch
+        run: |
+          mkdir -p public
+          cp reports/sewage.json public/sewage.json
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: public
+          publish_branch: gh-pages
