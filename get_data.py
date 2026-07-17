@@ -128,13 +128,13 @@ def consolidate_records(records):
 
         if key not in grouped:
             grouped[key] = {
-                "BathingWater": bw,
+                "Bathing Water": bw,
                 "Date": date_key,
-                "Start": r["Start"],
-                "End": r["End"],
+                "Earliest Start": r["Start"],
+                "Latest End": r["End"],
                 "Outfalls": {outfall},
                 "Statuses": {r["Status"]},
-                "ImpactStatuses": {r["Impact Status"]}
+                "ImpactStatuses": {r["ImpactStatus"]}
             }
         else:
             entry = grouped[key]
@@ -147,7 +147,7 @@ def consolidate_records(records):
 
             entry["Outfalls"].add(outfall)
             entry["Statuses"].add(r["Status"])
-            entry["ImpactStatuses"].add(r["Impact Status"])
+            entry["ImpactStatuses"].add(r["ImpactStatus"])
 
     # ---------------------------------------------------------
     # ADD TOTAL DURATION + MOST SEVERE STATUS + IMPACT STATUS
@@ -167,7 +167,7 @@ def consolidate_records(records):
         severe_status = max(entry["Statuses"], key=lambda s: STATUS_RANK.get(s, 0))
 
         # Pick most severe Impact Status
-        severe_impact = max(entry["Impact Statuses"], key=lambda s: IMPACT_RANK.get(s, 0))
+        severe_impact = max(entry["ImpactStatuses"], key=lambda s: IMPACT_RANK.get(s, 0))
 
         final.append({
             "BathingWater": entry["Bathing Water"],
