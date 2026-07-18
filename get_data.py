@@ -188,8 +188,12 @@ def consolidate_records(records):
 # ---------------------------------------------------------
 async def get_data(download_dir=download_dir_glob, report_dir=report_dir_glob):
 
+    hostname = os.getenv("HOSTNAME", "")
+    use_days = 3 if hostname == "www.therapypages.com" else 50
+    print(f"Delta days = {use_days}")
+
     end_date = date.today()
-    start_date = end_date - timedelta(days=50)
+    start_date = end_date - timedelta(days=use_days)
 
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
