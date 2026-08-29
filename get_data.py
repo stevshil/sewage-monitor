@@ -32,6 +32,40 @@ IMPACT_RANK = {
 }
 
 # ---------------------------------------------------------
+# HANDLE COOKIE BANNER (Reject if possible)
+# ---------------------------------------------------------
+async def handle_cookies(page):
+    selectors = [
+        'button#onetrust-reject-all-handler',          # explicit reject
+        'button[aria-label="Reject all"]',             # aria reject
+        'button[title="Reject all"]',                  # title reject
+        'button#onetrust-accept-btn-handler',          # fallback accept
+    ]
+
+    for sel in selectors:
+        try:
+            btn = await page.query_selector(sel)
+            if btn:
+                await btn.click()
+                return
+        except:
+            pass
+
+    # Some pages require opening "Manage Options" first
+    try:
+        manage = await page.query_selector('button#onetrust-pc-btn-handler')
+        if manage:
+            await manage.click()
+            await page.wait_for_timeout(500)
+
+            reject2 = await page.query_selector('button#onetrust-reject-all-handler')
+            if reject2:
+                await reject2.click()
+    except:
+        pass
+
+
+# ---------------------------------------------------------
 # DOWNLOAD CSV FOR ONE SITE
 # ---------------------------------------------------------
 async def get_sewage(url, download_dir):
@@ -42,12 +76,19 @@ async def get_sewage(url, download_dir):
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(accept_downloads=True)
 
+        print("Starting new page")
         page = await context.new_page()
+        print(f"Goto: {url}")
         await page.goto(url)
+        print(f"Handling cookie for {page}")
+        await handle_cookies(page)
 
         parsed = urlparse(url)
         params = parse_qs(parsed.query)
+        print(f"Got params: {params}")
         outfall_value = params.get("Outfall", [None])[0]
+        print(f"Got outfall: {outfall_value}")
+        bathing = "SANDGATE"
 
         try:
             await page.wait_for_selector('button#onetrust-accept-btn-handler', timeout=20000)
@@ -55,25 +96,32 @@ async def get_sewage(url, download_dir):
         except:
             pass
 
-        await page.wait_for_timeout(3000)
+        print("Waiting for page")
+        await page.wait_for_timeout(10000)
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
 
+        print("Looking for csv export button")
         buttons = await page.query_selector_all('button[aria-label="Export table data to CSV"]')
         if not buttons:
             print(f"No CSV available for {outfall_value}")
             await browser.close()
             return None
 
+        print("Downloading data")
         async with page.expect_download() as download_info:
             await page.click('button[aria-label="Export table data to CSV"]')
             await page.click('button[aria-label="Continue"]')
 
         download = await download_info.value
+        print(f"Downloaded data: {download}")
 
-        filename = f"{outfall_value}.csv"
+        # filename = f"{outfall_value}.csv"
+        filename = f"{bathing}.csv"
         final_path = os.path.join(download_dir, filename)
+        print("Saving data")
         await download.save_as(final_path)
 
+        print("Closing browser")
         await browser.close()
         return final_path
 
@@ -83,8 +131,9 @@ async def get_sewage(url, download_dir):
 # ---------------------------------------------------------
 def parse_csv_to_records(csv_path):
     records = []
-    outfall = os.path.basename(csv_path).replace(".csv", "")
+    fallback_outfall = os.path.basename(csv_path).replace(".csv", "")
 
+    print(f"Writing CSV {csv_path}")
     with open(csv_path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         reader.fieldnames = [h.replace('\ufeff', '').replace('"', '') for h in reader.fieldnames]
@@ -93,7 +142,7 @@ def parse_csv_to_records(csv_path):
             clean_row = {k.replace('\ufeff', '').replace('"', ''): v for k, v in row.items()}
 
             record = {
-                "Outfall": clean_row.get("Outfall", outfall),
+                "Outfall": clean_row.get("Outfall") or fallback_outfall,
                 "Status": clean_row.get("Status"),
                 "Start": clean_row.get("Start (Formatted)"),
                 "End": clean_row.get("End (Formatted)"),
@@ -106,12 +155,14 @@ def parse_csv_to_records(csv_path):
     return records
 
 
+
 # ---------------------------------------------------------
 # CONSOLIDATE SPILLS BY BATHING SITE + DATE
 # ---------------------------------------------------------
 def consolidate_records(records):
     grouped = {}
 
+    print("Consolidating records")
     for r in records:
         start_str = r["Start"]
         end_str = r["End"]
@@ -154,6 +205,7 @@ def consolidate_records(records):
     # ---------------------------------------------------------
     final = []
 
+    print("Grouping values")
     for entry in grouped.values():
         start_dt = datetime.strptime(entry["Earliest Start"], "%d/%m/%Y %H:%M:%S GMT")
         end_dt = datetime.strptime(entry["Latest End"], "%d/%m/%Y %H:%M:%S GMT")
@@ -189,14 +241,16 @@ def consolidate_records(records):
 async def get_data(download_dir=download_dir_glob, report_dir=report_dir_glob):
 
     pathcontains = os.getenv("PWD", "")
-    use_days = 3 if "runner" in pathcontains else 50
+    use_days = 3 if "runner" in pathcontains else 5
     print(f"Delta days = {use_days}")
 
     end_date = date.today()
     start_date = end_date - timedelta(days=use_days)
+    print(f"Start date: {start_date}")
 
     start_str = start_date.strftime("%Y-%m-%d")
     end_str = end_date.strftime("%Y-%m-%d")
+    print(f"End date: {end_str}")
 
     downloaded_files = []
     all_records = []
