@@ -88,7 +88,7 @@ async def get_sewage(url, download_dir):
         print(f"Got params: {params}")
         outfall_value = params.get("Outfall", [None])[0]
         print(f"Got outfall: {outfall_value}")
-        bathing = "SANDGATE"
+        bathing = "SANDGATE GRANVILLE PARADE"
 
         try:
             await page.wait_for_selector('button#onetrust-accept-btn-handler', timeout=20000)
@@ -255,7 +255,7 @@ async def get_data(download_dir=download_dir_glob, report_dir=report_dir_glob):
     downloaded_files = []
     all_records = []
 
-    site = "SANDGATE"
+    site = "SANDGATE GRANVILLE PARADE"
 
     url = (
         f"https://riversandseaswatch.southernwater.co.uk/release-history?"
