@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import asyncio
-from playwright.async_api import async_playwright
+import logging
+from playwright.async_api import Error as PlaywrightError, async_playwright
 import os
 import sys
 import csv
@@ -73,57 +74,87 @@ async def get_sewage(url, download_dir):
         os.makedirs(download_dir)
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(accept_downloads=True)
-
-        print("Starting new page")
-        page = await context.new_page()
-        print(f"Goto: {url}")
-        await page.goto(url)
-        print(f"Handling cookie for {page}")
-        await handle_cookies(page)
-
-        parsed = urlparse(url)
-        params = parse_qs(parsed.query)
-        print(f"Got params: {params}")
-        outfall_value = params.get("Outfall", [None])[0]
-        print(f"Got outfall: {outfall_value}")
-        bathing = "SANDGATE GRANVILLE PARADE"
-
+        browser = await p.chromium.launch(
+            headless=True,
+            # Lambda blocks Chromium's zygote and GPU child-process operations.
+            args=[
+                "--disable-gpu",
+                "--disable-setuid-sandbox",
+                "--no-zygote",
+            ],
+        )
+        context = None
         try:
-            await page.wait_for_selector('button#onetrust-accept-btn-handler', timeout=20000)
-            await page.click('button#onetrust-accept-btn-handler')
-        except:
-            pass
+            context = await browser.new_context(accept_downloads=True)
 
-        print("Waiting for page")
-        await page.wait_for_timeout(10000)
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            print(
+                "Playwright state before page creation: "
+                f"browser_connected={browser.is_connected()}, "
+                f"context_closed={context.is_closed()}",
+                flush=True,
+            )
+            try:
+                page = await context.new_page()
+            except PlaywrightError as error:
+                raise RuntimeError(
+                    "Could not create Playwright page "
+                    f"(browser_connected={browser.is_connected()}, "
+                    f"context_closed={context.is_closed()})"
+                ) from error
+            try:
+                print(f"Request URL: {url}", flush=True)
+                await page.goto(url)
+                print(f"Handling cookie for {page}")
+                await handle_cookies(page)
 
-        print("Looking for csv export button")
-        buttons = await page.query_selector_all('button[aria-label="Export table data to CSV"]')
-        if not buttons:
-            print(f"No CSV available for {outfall_value}")
-            await browser.close()
-            return None
+                parsed = urlparse(url)
+                params = parse_qs(parsed.query)
+                print(f"Got params: {params}")
+                outfall_value = params.get("Outfall", [None])[0]
+                print(f"Got outfall: {outfall_value}")
+                bathing = "SANDGATE GRANVILLE PARADE"
 
-        print("Downloading data")
-        async with page.expect_download() as download_info:
-            await page.click('button[aria-label="Export table data to CSV"]')
-            await page.click('button[aria-label="Continue"]')
+                try:
+                    await page.wait_for_selector(
+                        'button#onetrust-accept-btn-handler', timeout=20000
+                    )
+                    await page.click('button#onetrust-accept-btn-handler')
+                except:
+                    pass
 
-        download = await download_info.value
-        print(f"Downloaded data: {download}")
+                print("Waiting for page")
+                await page.wait_for_timeout(10000)
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
 
-        # filename = f"{outfall_value}.csv"
-        filename = f"{bathing}.csv"
-        final_path = os.path.join(download_dir, filename)
-        print("Saving data")
-        await download.save_as(final_path)
+                print("Looking for csv export button")
+                buttons = await page.query_selector_all(
+                    'button[aria-label="Export table data to CSV"]'
+                )
+                if not buttons:
+                    print(f"No CSV available for {outfall_value}")
+                    return None
 
-        print("Closing browser")
-        await browser.close()
-        return final_path
+                print("Downloading data")
+                async with page.expect_download() as download_info:
+                    await page.click('button[aria-label="Export table data to CSV"]')
+                    await page.click('button[aria-label="Continue"]')
+
+                download = await download_info.value
+                print(f"Downloaded data: {download}")
+
+                filename = f"{bathing}.csv"
+                final_path = os.path.join(download_dir, filename)
+                print("Saving data")
+                await download.save_as(final_path)
+                return final_path
+            finally:
+                await page.close()
+        finally:
+            try:
+                if context is not None:
+                    await context.close()
+            finally:
+                await browser.close()
 
 
 # ---------------------------------------------------------
@@ -241,7 +272,8 @@ def consolidate_records(records):
 async def get_data(download_dir=download_dir_glob, report_dir=report_dir_glob):
 
     pathcontains = os.getenv("PWD", "")
-    use_days = 3 if "runner" in pathcontains else 5
+    is_lambda = bool(os.getenv("AWS_LAMBDA_FUNCTION_NAME"))
+    use_days = 3 if "runner" in pathcontains or is_lambda else 5
     print(f"Delta days = {use_days}")
 
     end_date = date.today()
@@ -269,7 +301,10 @@ async def get_data(download_dir=download_dir_glob, report_dir=report_dir_glob):
             records = parse_csv_to_records(csv_path)
             all_records.extend(records)
     except Exception as e:
-        print(f"Error for {site}: {e}")
+        logging.exception("Failed to collect sewage data for %s", site)
+        raise RuntimeError(
+            f"Failed to collect sewage data for {site}: {type(e).__name__}: {e}"
+        ) from e
 
     if not os.path.exists(report_dir):
         os.makedirs(report_dir)

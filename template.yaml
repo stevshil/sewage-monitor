@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Hourly sewage monitor that writes the report to S3.
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: Existing bucket where the sewage report will be uploaded.
+  S3ObjectKey:
+    Type: String
+    Default: sewage.json
+    Description: Object key (including any desired folder prefix) for the report.
+
+Resources:
+  SewageMonitorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+      MemorySize: 1024
+      Timeout: 180
+      EphemeralStorage:
+        Size: 1024
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref S3BucketName
+          S3_KEY: !Ref S3ObjectKey
+          DEBUG: "pw:browser*"
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub "arn:${AWS::Partition}:s3:::${S3BucketName}/${S3ObjectKey}"
+      Events:
+        HourlySchedule:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 * * * ? *)
+            Enabled: true
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: .
+      DockerTag: sewage-monitor
+
+Outputs:
+  SewageMonitorFunctionName:
+    Description: Lambda function name
+    Value: !Ref SewageMonitorFunction

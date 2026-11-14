@@ -1,8 +1,6 @@
-name: Hourly Sewage Monitor
+name: Publish Sewage Monitor to GitHub Pages
 
 on:
-  schedule:
-    - cron: "0 * * * *"   # Every hour
   workflow_dispatch:
 
 jobs:
@@ -42,6 +40,5 @@ jobs:
           publish_branch: pages
           keep_files: false
           force_orphan: true
-
 
 

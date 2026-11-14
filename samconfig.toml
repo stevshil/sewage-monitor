@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "sewage-monitor"
+resolve_s3 = true
+s3_prefix = "sewage-monitor"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "S3BucketName=\"tps-sewage-monitor\" S3ObjectKey=\"sewage.json\""
+image_repositories = ["SewageMonitorFunction=241452988962.dkr.ecr.eu-north-1.amazonaws.com/sewagemonitoraf91c0b2/sewagemonitorfunctione86ab4b1repo"]
+
+[default.global.parameters]
+region = "eu-north-1"

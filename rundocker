@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if docker images | grep -v sewage-monitor
+then
+    docker build -t sewage-monitor:local .
+fi
+
+docker run -it --rm -p 9000:8080 \
+  -e S3_BUCKET=tps-sewage-monitor \
+  -e S3_KEY=reports/sewage.json \
+  -e AWS_DEFAULT_REGION=us-east-1 \
+  --entrypoint /usr/local/bin/aws-lambda-rie \
+  sewage-monitor:local \
+  /lambda-entrypoint.sh lambda_function.lambda_handler
