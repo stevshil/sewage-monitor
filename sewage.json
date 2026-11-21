@@ -1,0 +1,22 @@
+[
+  {
+    "BathingWater": "SANDGATE GRANVILLE PARADE",
+    "Date": "2026-11-19",
+    "Start": "19/11/2026 00:20:05 GMT",
+    "End": "19/11/2026 17:51:09 GMT",
+    "TotalDuration": "17 hours 31 minutes",
+    "AffectedOutfalls": "RANGE ROAD HYTHE K LONG, THE STADE FOLKESTONE",
+    "Status": "Genuine",
+    "ImpactStatus": "Impacted"
+  },
+  {
+    "BathingWater": "SANDGATE GRANVILLE PARADE",
+    "Date": "2026-11-18",
+    "Start": "18/11/2026 21:41:55 GMT",
+    "End": "18/11/2026 22:51:17 GMT",
+    "TotalDuration": "1 hours 9 minutes",
+    "AffectedOutfalls": "RANGE ROAD HYTHE K LONG",
+    "Status": "Genuine",
+    "ImpactStatus": "Not Impacted"
+  }
+]
